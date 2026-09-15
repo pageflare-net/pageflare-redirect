@@ -1,0 +1,28 @@
+version: "3.8"
+services:
+  app:
+    build: .
+    ports:
+      - "80:3000"
+    env_file: .env
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/redirects
+    depends_on:
+      - mongo
+    networks:
+      - appnet
+
+  mongo:
+    image: mongo
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - appnet
+    ports:
+      - "27017:27017"
+
+volumes:
+  mongo-data:
+
+networks:
+  appnet:
