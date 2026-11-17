@@ -13,8 +13,7 @@ router.get("/", async (req, res) => {
     hostname = hostname.slice(4);
   }
 
-  const isRedirectTesting =
-    req.headers["x-pageflare-redirect-test"] === "true";
+  const isRedirectTesting = req.headers["x-pageflare-redirect-test"] === "true";
 
   const redirect = await findConfigByHostname(hostname);
 
@@ -33,7 +32,7 @@ router.get("/", async (req, res) => {
       })
       .catch((err: Error) => {
         logger.error(
-          `Failed to log event for ${redirect.uuid}: ${err.message}`
+          `Failed to log event for ${redirect.uuid}: ${err.message}`,
         );
         res.status(500).json({
           message: `Failed to log redirect event for ${redirect.uuid}`,
@@ -42,7 +41,7 @@ router.get("/", async (req, res) => {
       });
   } else {
     logger.debug(
-      `Not logging redirect event for ${redirect.uuid} due to test header`
+      `Not logging redirect event for ${redirect.uuid} due to test header`,
     );
   }
 

@@ -15,7 +15,7 @@ const customFormat = format.combine(
         "\n" + "Failed to stringify meta data " + (error as Error).message;
     }
     return `${timestamp} ${level} ${stack || message}${metaString}`;
-  })
+  }),
 );
 
 const logger = createLogger({
@@ -36,7 +36,7 @@ if (process.env.NODE_ENV === "production") {
       format: customFormat,
       handleExceptions: true,
       handleRejections: true,
-    })
+    }),
   );
 }
 

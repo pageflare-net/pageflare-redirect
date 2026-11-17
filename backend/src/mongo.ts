@@ -9,9 +9,9 @@ const MONGO_URI =
 
 // Create a MongoDB client
 const client = new MongoClient(MONGO_URI, {
-  timeoutMS: 1000,
-  connectTimeoutMS: 1000,
-  serverSelectionTimeoutMS: 1000,
+  timeoutMS: 10000,
+  connectTimeoutMS: 10000,
+  serverSelectionTimeoutMS: 10000,
 });
 
 /**
@@ -19,6 +19,18 @@ const client = new MongoClient(MONGO_URI, {
  */
 export async function connectToMongo(): Promise<void> {
   await client.connect();
+  await client
+    .db()
+    .collection("configs")
+    .createIndex({ source: 1 }, { unique: true });
+  await client
+    .db()
+    .collection("users")
+    .createIndex({ username: 1 }, { unique: true });
+  await client
+    .db()
+    .collection("stats")
+    .createIndex({ uuid: 1 }, { unique: true });
   logger.info("Connected to MongoDB");
 }
 
@@ -35,7 +47,7 @@ export async function addConfig(source: string, target: string): Promise<void> {
   if (config) {
     logger.warn(`Attempted to add duplicate config for ${source}`);
     throw new Error(
-      `Config for ${source} already exists with UUID: ${config.uuid}`
+      `Config for ${source} already exists with UUID: ${config.uuid}`,
     );
   }
 
@@ -47,7 +59,7 @@ export async function addConfig(source: string, target: string): Promise<void> {
   };
   await client.db().collection<Config>("configs").insertOne(newConfig);
   logger.info(
-    `Added new config for ${source} -> ${target} with UUID: ${newConfig.uuid}`
+    `Added new config for ${source} -> ${target} with UUID: ${newConfig.uuid}`,
   );
 }
 
@@ -75,7 +87,7 @@ export type RedirectStats = {
 };
 
 export async function getRedirectStats(
-  uuid: string
+  uuid: string,
 ): Promise<RedirectStats | null> {
   return client.db().collection<RedirectStats>("stats").findOne({ uuid });
 }
@@ -87,27 +99,15 @@ export async function logRedirect(uuid: string): Promise<void> {
   const db = getDb();
   const redirectsCollection = db.collection("stats");
 
-  // Try to update, and if no document exists, insert a new one
-  const updateResult = await redirectsCollection.updateOne(
+  await redirectsCollection.updateOne(
     { uuid },
     {
       $inc: { totalRedirects: 1, [`redirectCounts.${formattedDate}`]: 1 },
       $set: { lastRedirected: today },
-    }
+      $setOnInsert: { firstRedirected: today },
+    },
+    { upsert: true },
   );
-
-  if (updateResult.matchedCount === 0) {
-    // No document found, insert a new one
-    const redirectCounts = { [formattedDate]: 1 };
-    await redirectsCollection.insertOne({
-      uuid,
-      redirectCounts,
-      totalRedirects: 1,
-      lastRedirected: today,
-      firstRedirected: today,
-    });
-    logger.info(`Created new redirect stats entry for UUID: ${uuid}`);
-  }
 }
 
 export type User = {
@@ -119,7 +119,7 @@ export type User = {
 
 export async function createUser(
   username: string,
-  password: string
+  password: string,
 ): Promise<void> {
   const existing = await client
     .db()
@@ -144,7 +144,7 @@ export async function createUser(
 }
 
 export async function findUserByUsername(
-  username: string
+  username: string,
 ): Promise<User | null> {
   return client.db().collection<User>("users").findOne({ username });
 }
