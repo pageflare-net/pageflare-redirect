@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc --noEmit && vite build",
-    "typecheck": "tsc --noEmit"
+    "build": "bun --bun tsc --noEmit && bun --bun vite build",
+    "typecheck": "bun --bun tsc --noEmit"
   },
   "dependencies": {
     "react": "19.2.8",

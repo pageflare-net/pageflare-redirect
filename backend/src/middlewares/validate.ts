@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { ZodSchema } from "zod";
 
-export function validateParams(schema: ZodSchema<any>) {
+export function validateParams(schema: ZodSchema<Record<string, unknown>>) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.params);
     if (!result.success) {
@@ -11,12 +11,12 @@ export function validateParams(schema: ZodSchema<any>) {
       });
       return;
     }
-    Object.assign(req.params,result.data);
+    Object.assign(req.params, result.data);
     next();
   };
 }
 
-export function validateQuery(schema: ZodSchema<any>) {
+export function validateQuery(schema: ZodSchema<Record<string, unknown>>) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.query);
     if (!result.success) {
@@ -26,12 +26,12 @@ export function validateQuery(schema: ZodSchema<any>) {
       });
       return;
     }
-    Object.assign(req.query,result.data);
+    Object.assign(req.query, result.data);
     next();
   };
 }
 
-export function validateBody(schema: ZodSchema<any>) {
+export function validateBody(schema: ZodSchema<Record<string, unknown>>) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {

@@ -11,3 +11,9 @@ dist/
 .env
 .env.*
 !.env.example
+
+.story-frames/
+
+__pycache__/
+*.pyc
+.story-frames/

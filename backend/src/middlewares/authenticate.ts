@@ -1,8 +1,6 @@
-import {jwtSecret} from "../secret";
+import { jwtSecret } from "../secret";
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-
-
 
 export function authenticateWithBearer() {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -15,10 +13,9 @@ export function authenticateWithBearer() {
     const token = authHeader.split(" ")[1];
     try {
       const payload = jwt.verify(token, jwtSecret());
-      (req as any).user = payload;
+      res.locals.user = payload;
       next();
-    } catch (e) {
-      console.log(e);
+    } catch {
       res.status(401).json({ message: "Invalid or expired token" });
       return;
     }

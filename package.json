@@ -6,9 +6,10 @@
   "scripts": {
     "start": "bun run --cwd backend start",
     "dev": "bun run --cwd frontend dev",
-    "docker-build": "docker build --build-arg VITE_API_BASE_URL=$VITE_API_BASE_URL -t pageflare-redirect-app:latest .",
+    "docker-build": "docker build -t pageflare-redirect:local .",
     "build": "bun run --cwd frontend build && bun run --cwd backend build",
-    "typecheck": "bun run --cwd frontend typecheck && bun run --cwd backend typecheck"
+    "typecheck": "bun run --cwd frontend typecheck && bun run --cwd backend typecheck",
+    "lint": "eslint . --max-warnings=0"
   },
   "keywords": [
     "redirect",
@@ -23,7 +24,9 @@
     "backend"
   ],
   "devDependencies": {
-    "turbo": "^2.5.3"
+    "turbo": "^2.5.3",
+    "eslint": "9.39.5",
+    "typescript-eslint": "8.62.0"
   },
   "packageManager": "bun@1.4.3"
 }

@@ -3,9 +3,9 @@
   "private": true,
   "scripts": {
     "dev": "bun --watch src/index.ts",
-    "build": "tsc",
+    "build": "bun --bun tsc",
     "start": "bun dist/index.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "bun --bun tsc --noEmit"
   },
   "dependencies": {
     "express": "5.1.0",
