@@ -16,20 +16,6 @@ router.get("/", (req, res) => {
 export function registerRoutes(app: Router) {
   logger.info("Registering all routes");
 
-  app.use((req, res, next) => {
-    logger.debug("Request received", {
-      method: req.method,
-      hostname: req.hostname,
-      url: req.url,
-      headers: req.headers,
-      body: req.body,
-      params: req.params,
-      query: req.query,
-      timestamp: new Date().toISOString(),
-    });
-    next();
-  });
-
   app.use("/", router);
   app.use("/ui", UI);
   app.use("/redirect", REDIRECT);

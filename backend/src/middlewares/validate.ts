@@ -11,7 +11,7 @@ export function validateParams(schema: ZodSchema<any>) {
       });
       return;
     }
-    req.params = result.data;
+    Object.assign(req.params,result.data);
     next();
   };
 }
@@ -26,7 +26,7 @@ export function validateQuery(schema: ZodSchema<any>) {
       });
       return;
     }
-    req.query = result.data;
+    Object.assign(req.query,result.data);
     next();
   };
 }

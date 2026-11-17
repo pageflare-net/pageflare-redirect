@@ -19,6 +19,9 @@ const client = new MongoClient(MONGO_URI, {
  */
 export async function connectToMongo(): Promise<void> {
   await client.connect();
+  await client.db().collection("configs").createIndex({source:1},{unique:true});
+  await client.db().collection("users").createIndex({username:1},{unique:true});
+  await client.db().collection("stats").createIndex({uuid:1},{unique:true});
   logger.info("Connected to MongoDB");
 }
 

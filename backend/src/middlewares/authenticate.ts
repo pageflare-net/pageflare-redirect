@@ -1,7 +1,8 @@
+import {jwtSecret} from "../secret";
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "changeme";
+
 
 export function authenticateWithBearer() {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -13,7 +14,7 @@ export function authenticateWithBearer() {
     }
     const token = authHeader.split(" ")[1];
     try {
-      const payload = jwt.verify(token, JWT_SECRET);
+      const payload = jwt.verify(token, jwtSecret());
       (req as any).user = payload;
       next();
     } catch (e) {
