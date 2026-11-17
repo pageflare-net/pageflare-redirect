@@ -19,7 +19,8 @@ app.use(helmet());
 app.use(express.json({ limit: "32kb" }));
 app.use(globalRateLimiter);
 
-const port = process.env.PORT || 3000;
+const port = Number(process.env.PORT ?? 3000);
+if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invalid listener port");
 const prodMode = process.env.NODE_ENV === "production";
 
 async function boot() {
@@ -51,7 +52,7 @@ async function boot() {
       res.status(500).json({ message: "Request failed" });
     },
   );
-  app.listen(port, () => {
+  app.listen(port, process.env.HOST ?? "127.0.0.1", () => {
     logger.info(
       `Pageflare Redirect listening on port ${port}, mode: ${prodMode ? "PROD" : "DEV"}`,
     );
