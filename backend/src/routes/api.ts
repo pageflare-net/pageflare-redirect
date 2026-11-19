@@ -8,6 +8,9 @@ import {
   getRedirectStats,
   createUser,
   findUserByUsername,
+  updateConfig,
+  deleteConfig,
+  getStatsForConfigurations,
 } from "../mongo";
 import { validateBody, validateParams } from "../middlewares/validate";
 import { z } from "zod";
@@ -56,33 +59,39 @@ router.get(
   },
 );
 
-const createConfigSchema = z.object({
+const configFields = z.object({
   source: z
     .string()
+    .trim()
+    .max(253)
     .toLowerCase()
-    .regex(/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,63}$/),
+    .regex(/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/),
   target: z
     .string()
+    .trim()
+    .max(2048)
     .url()
     .refine(
-      (value) => ["http:", "https:"].includes(new URL(value).protocol),
-      "HTTP(S) destinations only",
+      (value) => {try {const url=new URL(value);return ["http:","https:"].includes(url.protocol)&&!url.username&&!url.password&&!/[\u0000-\u0020\u007f]/.test(value);} catch{return false;}},
+      "Use an HTTP(S) destination without credentials or whitespace",
     ),
-});
+}).strict();
+const createConfigSchema = configFields.refine(value => {try{return new URL(value.target).hostname.toLowerCase() !== value.source;}catch{return false;}}, "Source and destination hostname must differ to avoid redirect loops");
+const updateConfigSchema = configFields.partial().refine(value => Object.keys(value).length>0,"Provide a source or destination");
 
 router.post(
   "/configs",
-  validateBody(createConfigSchema),
   authenticateWithBearer(),
+  validateBody(createConfigSchema),
   async (req, res) => {
     const { source, target } = req.body;
 
     try {
-      await addConfig(source, target);
+      const config = await addConfig(source, target);
       logger.info("Config created", { source, target });
       res.status(201).json({
         message: "Config created successfully",
-        config: { source, target },
+        config,
       });
       return;
     } catch (error) {
@@ -102,6 +111,27 @@ router.post(
     }
   },
 );
+
+router.patch("/configs/:uuid", authenticateWithBearer(), validateParams(uuidParamsSchema), validateBody(updateConfigSchema), async (req,res) => {
+  const uuid=req.params.uuid as string;
+  const current=await getConfigByUUID(uuid);
+  if(!current){res.status(404).json({message:"Redirect not found"});return;}
+  const parsed=createConfigSchema.safeParse({source:req.body.source??current.source,target:req.body.target??current.target});
+  if(!parsed.success){res.status(400).json({message:"Invalid redirect configuration",errors:parsed.error.errors});return;}
+  try {
+    const config=await updateConfig(uuid,parsed.data.source,parsed.data.target);
+    if(!config){res.status(404).json({message:"Redirect not found"});return;}
+    res.json({message:"Redirect updated",config});
+  } catch(error){
+    if((error as {code?:number}).code===11000){res.status(409).json({message:"Source hostname already exists"});return;}
+    throw error;
+  }
+});
+
+router.delete("/configs/:uuid", authenticateWithBearer(), validateParams(uuidParamsSchema), async(req,res)=>{
+  if(!await deleteConfig(req.params.uuid as string)){res.status(404).json({message:"Redirect not found"});return;}
+  res.status(204).end();
+});
 
 router.get(
   "/stats/:uuid",
@@ -126,15 +156,8 @@ router.get(
 
 router.get("/ui-data", authenticateWithBearer(), async (req, res) => {
   const configs = (await getConfigs()) ?? [];
-  const stats = await Promise.all(
-    configs.map(async (config) => {
-      const stat = await getRedirectStats(config.uuid);
-      return {
-        ...config,
-        stats: stat,
-      };
-    }),
-  );
+  const recorded = new Map((await getStatsForConfigurations(configs.map(config=>config.uuid))).map(stat=>[stat.uuid,stat]));
+  const stats = configs.map(config=>({...config,stats:recorded.get(config.uuid)??null}));
 
   res.status(200).json({
     message: "UI data retrieved successfully",
