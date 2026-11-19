@@ -4,7 +4,7 @@ import express from "express";
 
 const router = Router();
 
-const distPath = path.join(__dirname, "../../../frontend/dist");
+const distPath = process.env.REDIRECT_UI_DIR ?? path.join(__dirname, "../../../frontend/dist");
 
 // Serve static files for the frontend dashboard
 router.use(express.static(distPath));

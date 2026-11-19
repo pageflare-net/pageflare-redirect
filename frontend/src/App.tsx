@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 type Redirect = {
   uuid: string;
   source: string;
@@ -10,6 +16,15 @@ type Redirect = {
 };
 export default function App() {
   const [range, setRange] = useState(7);
+  const [editing, setEditing] = useState<Redirect | null>(null);
+  const [deleting, setDeleting] = useState<Redirect | null>(null);
+  const [message, setMessage] = useState("");
+  const [page, setPage] = useState(1);
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (deleting) dialog.current?.showModal();
+    else dialog.current?.close();
+  }, [deleting]);
   const [token, setToken] = useState(
       () => sessionStorage.getItem("pageflare-token") ?? "",
     ),
@@ -60,9 +75,56 @@ export default function App() {
       } else {
         form.reset();
         await load();
+        setMessage("Redirect created");
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Network unavailable");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function changeConfig(
+    item: Redirect,
+    method: "PATCH" | "DELETE",
+    values?: Record<string, FormDataEntryValue>,
+  ) {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(`${base}/api/configs/${item.uuid}`, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        ...(values ? { body: JSON.stringify(values) } : {}),
+      });
+      if (!response.ok) {
+        const value = await response.json();
+        throw new Error(value.message ?? "Unable to save redirect");
+      }
+      if (method === "DELETE") {
+        setData((current) =>
+          current.filter((value) => value.uuid !== item.uuid),
+        );
+        setDeleting(null);
+        setMessage("Redirect deleted");
+      } else {
+        const value = await response.json();
+        setData((current) =>
+          current.map((row) =>
+            row.uuid === item.uuid ? { ...row, ...value.config } : row,
+          ),
+        );
+        setEditing(null);
+        setMessage("Redirect updated");
+      }
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Unable to save redirect",
+      );
     } finally {
       setBusy(false);
     }
@@ -114,6 +176,9 @@ export default function App() {
   const filtered = data.filter((r) =>
     `${r.source} ${r.target}`.toLowerCase().includes(search.toLowerCase()),
   );
+  const pageCount = Math.max(1, Math.ceil(filtered.length / 10));
+  const currentPage = Math.min(page, pageCount);
+  const visible = filtered.slice((currentPage - 1) * 10, currentPage * 10);
   return (
     <main>
       <header>
@@ -123,6 +188,10 @@ export default function App() {
             sessionStorage.removeItem("pageflare-token");
             setToken("");
             setData([]);
+            setEditing(null);
+            setDeleting(null);
+            setError("");
+            setMessage("");
           }}
         >
           Sign out
@@ -136,9 +205,14 @@ export default function App() {
           .toLocaleString()}{" "}
         total requests
       </p>
-      {error && (
+      {error && !deleting && (
         <p role="alert" className="error">
           {error}
+        </p>
+      )}
+      {message && (
+        <p role="status" className="notice">
+          {message}
         </p>
       )}
       <form className="panel" onSubmit={(e) => submit(e, false)}>
@@ -177,25 +251,154 @@ export default function App() {
         <input
           type="search"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
         />
       </label>
       {!filtered.length && (
-        <p className="muted">No redirects match this view</p>
+        <p className="muted">
+          {data.length
+            ? "No redirects match this view"
+            : "No redirects configured. Add a source hostname and destination above."}
+        </p>
       )}
-      {filtered.map((r) => (
-        <article className="row" key={r.uuid}>
-          <div>
-            <strong>{r.source}</strong>
-            <p>
-              <a href={r.target} rel="noreferrer" target="_blank">
-                {r.target}
-              </a>
-            </p>
-          </div>
-          <span>{count(r).toLocaleString()} requests</span>
-        </article>
-      ))}
+      {visible.map((r) =>
+        editing?.uuid === r.uuid ? (
+          <form
+            className="panel"
+            key={r.uuid}
+            onSubmit={(event) => {
+              event.preventDefault();
+              void changeConfig(
+                r,
+                "PATCH",
+                Object.fromEntries(new FormData(event.currentTarget)),
+              );
+            }}
+          >
+            <h2>Edit redirect</h2>
+            <div className="grid">
+              <label>
+                Source hostname
+                <input name="source" required defaultValue={r.source} />
+              </label>
+              <label>
+                Destination URL
+                <input
+                  name="target"
+                  type="url"
+                  required
+                  defaultValue={r.target}
+                />
+              </label>
+              <button disabled={busy}>Save redirect</button>
+            </div>
+            <div className="actions">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setEditing(null);
+                  setError("");
+                }}
+              >
+                Cancel edit
+              </button>
+              <span className="muted">
+                Existing analytics are retained when you edit a redirect.
+              </span>
+            </div>
+          </form>
+        ) : (
+          <article className="row" key={r.uuid}>
+            <div>
+              <strong>{r.source}</strong>
+              <p>
+                <a href={r.target} rel="noreferrer" target="_blank">
+                  {r.target}
+                </a>
+              </p>
+            </div>
+            <div className="redirect-controls">
+              <span>{count(r).toLocaleString()} requests</span>
+              <button
+                disabled={busy}
+                aria-label={`Edit ${r.source}`}
+                onClick={() => {
+                  setEditing(r);
+                  setError("");
+                  setMessage("");
+                }}
+              >
+                Edit
+              </button>
+              <button
+                disabled={busy}
+                aria-label={`Delete ${r.source}`}
+                onClick={() => {
+                  setDeleting(r);
+                  setError("");
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </article>
+        ),
+      )}
+      {filtered.length > 0 && (
+        <nav className="pagination" aria-label="Redirect pagination">
+          <button
+            disabled={currentPage === 1 || busy}
+            onClick={() => setPage(currentPage - 1)}
+          >
+            Previous
+          </button>
+          <span>
+            Page {currentPage} of {pageCount} · {filtered.length} redirects
+          </span>
+          <button
+            disabled={currentPage === pageCount || busy}
+            onClick={() => setPage(currentPage + 1)}
+          >
+            Next
+          </button>
+        </nav>
+      )}
+      <dialog
+        ref={dialog}
+        onCancel={(event) => {
+          if (busy) event.preventDefault();
+          else setDeleting(null);
+        }}
+        aria-labelledby="delete-redirect-title"
+      >
+        <h2 id="delete-redirect-title">Delete this redirect?</h2>
+        <p>{deleting?.source}</p>
+        <p>
+          This removes the redirect and its recorded analytics. It does not
+          change DNS.
+        </p>
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
+        <div className="actions">
+          <button disabled={busy} onClick={() => setDeleting(null)}>
+            Keep redirect
+          </button>
+          <button
+            disabled={busy}
+            className="danger"
+            onClick={() => deleting && void changeConfig(deleting, "DELETE")}
+          >
+            {busy ? "Deleting…" : "Delete redirect"}
+          </button>
+        </div>
+      </dialog>
     </main>
   );
 }

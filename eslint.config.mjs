@@ -1,2 +1,21 @@
 import tseslint from "typescript-eslint";
-export default tseslint.config({ignores:["**/dist/**","**/node_modules/**","unslop/**","unslop-story/**"]},...tseslint.configs.recommended,{rules:{"@typescript-eslint/no-unused-vars":["error",{argsIgnorePattern:"^_",caughtErrorsIgnorePattern:"^_"}]}});
+export default tseslint.config(
+  {
+    ignores: [
+      "**/dist/**",
+      "**/node_modules/**",
+      ".releases/**",
+      "unslop/**",
+      "unslop-story/**",
+    ],
+  },
+  ...tseslint.configs.recommended,
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
+    },
+  },
+);
