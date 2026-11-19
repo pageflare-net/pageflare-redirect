@@ -9,6 +9,7 @@ try:
  for command,cwd in [(['bun','--bun','vite','build','--outDir',str(output/'frontend')],root/'frontend'),(['bun','--bun','tsc','--outDir',str(output/'backend')],root/'backend')]:
   subprocess.run(command,cwd=cwd,env=env,check=True)
  assert (output/'frontend/index.html').is_file() and (output/'backend/index.js').is_file()
+ (output/'backend/node_modules').symlink_to(root/'backend/node_modules',target_is_directory=True)
  (output/'release.json').write_text(json.dumps({'name':name,'builtAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'sourceCommit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip(),'sourceModified':bool(subprocess.check_output(['git','status','--porcelain'],cwd=root,text=True).strip())},indent=2)+'\n')
  print('Isolated release built:',name)
 except BaseException:

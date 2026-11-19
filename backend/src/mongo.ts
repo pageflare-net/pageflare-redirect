@@ -23,7 +23,10 @@ export async function connectToMongo(): Promise<void> {
     .db()
     .collection("configs")
     .createIndex({ source: 1 }, { unique: true });
-  await client.db().collection("configs").createIndex({ uuid: 1 }, { unique: true });
+  await client
+    .db()
+    .collection("configs")
+    .createIndex({ uuid: 1 }, { unique: true });
   await client
     .db()
     .collection("users")
@@ -42,7 +45,10 @@ type Config = {
   createdAt: Date;
 };
 
-export async function addConfig(source: string, target: string): Promise<Config> {
+export async function addConfig(
+  source: string,
+  target: string,
+): Promise<Config> {
   // Check if the config already exists
   const config = await findConfigByHostname(source);
   if (config) {
@@ -65,24 +71,44 @@ export async function addConfig(source: string, target: string): Promise<Config>
   return newConfig;
 }
 
-export async function updateConfig(uuid: string, source: string, target: string): Promise<Config | null> {
-  return client.db().collection<Config>("configs").findOneAndUpdate(
-    { uuid }, { $set: { source, target } }, { returnDocument: "after" },
-  );
+export async function updateConfig(
+  uuid: string,
+  source: string,
+  target: string,
+): Promise<Config | null> {
+  return client
+    .db()
+    .collection<Config>("configs")
+    .findOneAndUpdate(
+      { uuid },
+      { $set: { source, target } },
+      { returnDocument: "after" },
+    );
 }
 
 export async function deleteConfig(uuid: string): Promise<boolean> {
-  const result = await client.db().collection<Config>("configs").deleteOne({ uuid });
+  const result = await client
+    .db()
+    .collection<Config>("configs")
+    .deleteOne({ uuid });
   if (!result.deletedCount) return false;
   await client.db().collection("stats").deleteOne({ uuid });
   return true;
 }
 
-export async function getStatsForConfigurations(uuids: string[]): Promise<RedirectStats[]> {
-  return client.db().collection<RedirectStats>("stats").find({ uuid: { $in: uuids } }).toArray();
+export async function getStatsForConfigurations(
+  uuids: string[],
+): Promise<RedirectStats[]> {
+  return client
+    .db()
+    .collection<RedirectStats>("stats")
+    .find({ uuid: { $in: uuids } })
+    .toArray();
 }
 
-export async function disconnectFromMongo(): Promise<void> { await client.close(); }
+export async function disconnectFromMongo(): Promise<void> {
+  await client.close();
+}
 
 export function findConfigByHostname(hostname: string): Promise<Config | null> {
   return client

@@ -382,14 +382,48 @@ form {
   gap: 16px;
   align-items: end;
 }
-.row>div:first-child{min-width:0;overflow-wrap:anywhere}
-.redirect-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.redirect-controls>span{font-variant-numeric:tabular-nums;color:var(--secondary);margin-right:8px}
-.pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0;flex-wrap:wrap}
-dialog{max-width:min(480px,calc(100% - 32px));padding:24px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px}
-dialog::backdrop{background:rgb(0 0 0 / 70%)}
-dialog p{overflow-wrap:anywhere}
-button.danger{background:#662d38;border-color:#8d4553;color:#ffe5e8}
+.row > div:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.redirect-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.redirect-controls > span {
+  font-variant-numeric: tabular-nums;
+  color: var(--secondary);
+  margin-right: 8px;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 24px 0;
+  flex-wrap: wrap;
+}
+dialog {
+  max-width: min(480px, calc(100% - 32px));
+  padding: 24px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+dialog::backdrop {
+  background: rgb(0 0 0 / 70%);
+}
+dialog p {
+  overflow-wrap: anywhere;
+}
+button.danger {
+  background: #662d38;
+  border-color: #8d4553;
+  color: #ffe5e8;
+}
 h1 {
   font-size: 32px;
   font-weight: 500;
